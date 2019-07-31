@@ -1,4 +1,4 @@
-apiVersion: chart.sh/v1beta1
+apiVersion: chartserver.io/v1beta1
 kind: Chart
 metadata:
   name: sample-chart
