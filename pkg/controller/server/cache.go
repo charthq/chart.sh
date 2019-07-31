@@ -3,7 +3,6 @@ package server
 import (
 	"time"
 
-	chartserverv1beta1 "github.com/charthq/chartserver/pkg/apis/chartserver/v1beta1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/proto/hapi/chart"
@@ -16,52 +15,52 @@ func (h *ChartServer) refreshCache() error {
 		return errors.Wrap(err, "failed to list namespaces")
 	}
 
-	foundCharts := []chartserverv1beta1.Chart{}
-	foundChartVersions := []chartserverv1beta1.ChartVersion{}
+	chartCache := map[string]repo.ChartVersions{}
 
 	for _, namespace := range namespaces.Items {
-		charts, err := h.chartserverClient.Charts(namespace.Name).List(metav1.ListOptions{})
-		if err != nil {
-			return errors.Wrap(err, "failed to list charts in namespace")
-		}
-
-		for _, chart := range charts.Items {
-			foundCharts = append(foundCharts, chart)
-		}
-
 		chartVersions, err := h.chartserverClient.ChartVersions(namespace.Name).List(metav1.ListOptions{})
 		if err != nil {
 			return errors.Wrap(err, "failed to list chart versions in namespace")
 		}
 
 		for _, chartVersion := range chartVersions.Items {
-			foundChartVersions = append(foundChartVersions, chartVersion)
-		}
-	}
-
-	chartCache := map[string]repo.ChartVersions{}
-
-	for _, foundChart := range foundCharts {
-		indexChartVersions := repo.ChartVersions{}
-
-		for _, foundChartVersion := range foundChartVersions {
-			if foundChartVersion.Spec.Name == foundChart.Spec.Name {
-				// https://github.com/helm/helm/blob/master/pkg/proto/hapi/chart/metadata.pb.go#L105
-
-				metadata := chart.Metadata{
-					Name: foundChartVersion.Spec.Name,
-					Home: foundChartVersion.Spec.Home,
-				}
-				indexChartVersion := repo.ChartVersion{
-					Metadata: &metadata,
-				}
-
-				indexChartVersions = append(indexChartVersions, &indexChartVersion)
+			metadata := chart.Metadata{
+				Name:        chartVersion.Spec.Name,
+				Home:        chartVersion.Spec.Home,
+				Sources:     chartVersion.Spec.Sources,
+				Version:     chartVersion.Spec.ChartVersion,
+				Description: chartVersion.Spec.Description,
+				Keywords:    []string{},
+				Maintainers: []*chart.Maintainer{},
+				Icon:        chartVersion.Spec.Icon,
+				AppVersion:  chartVersion.Spec.AppVersion,
 			}
-		}
+			for _, m := range chartVersion.Spec.Maintainers {
+				metadata.Maintainers = append(metadata.Maintainers, &chart.Maintainer{
+					Name: m,
+				})
+			}
 
-		if indexChartVersions.Len() > 0 {
-			chartCache[foundChart.Spec.Name] = indexChartVersions
+			indexChartVersions, ok := chartCache[chartVersion.Spec.Name]
+			if !ok {
+				indexChartVersions = repo.ChartVersions{}
+			}
+
+			created, err := time.Parse(time.RFC3339, chartVersion.Spec.Created)
+			if err != nil {
+				return errors.Wrap(err, "unable to parse created time in chartversion")
+			}
+
+			indexChartVersion := repo.ChartVersion{
+				Metadata: &metadata,
+				Digest:   chartVersion.Spec.Digest,
+				URLs:     chartVersion.Spec.URLs,
+				Created:  created,
+			}
+
+			indexChartVersions = append(indexChartVersions, &indexChartVersion)
+
+			chartCache[chartVersion.Spec.Name] = indexChartVersions
 		}
 	}
 

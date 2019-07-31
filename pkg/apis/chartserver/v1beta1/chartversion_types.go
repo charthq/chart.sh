@@ -28,7 +28,6 @@ type ChartVersionStatus struct {
 type ChartVersionSpec struct {
 	AppVersion   string   `json:"appVersion"`
 	ChartVersion string   `json:"chartVersion"`
-	Version      string   `json:"version"`
 	Created      string   `json:"created"`
 	Description  string   `json:"description"`
 	Digest       string   `json:"digest"`

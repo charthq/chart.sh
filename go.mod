@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/semver v1.4.2 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
+	github.com/ghodss/yaml v1.0.0
 	github.com/gin-gonic/gin v1.4.0
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gobwas/glob v0.2.3 // indirect

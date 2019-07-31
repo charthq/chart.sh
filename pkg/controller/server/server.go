@@ -6,6 +6,7 @@ import (
 	"time"
 
 	chartserverclientv1beta1 "github.com/charthq/chartserver/pkg/client/chartserverclientset/typed/chartserver/v1beta1"
+	"github.com/ghodss/yaml"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
@@ -77,5 +78,12 @@ func (h *ChartServer) Index(c *gin.Context) {
 	indexFile.Entries = h.chartCache
 	indexFile.Generated = h.cacheGeneratedAt
 
-	c.YAML(200, indexFile)
+	b, err := yaml.Marshal(indexFile)
+	if err != nil {
+		c.AbortWithStatus(500)
+		return
+	}
+
+	c.Header("Content-Type", "application/x-yaml; charset=utf-8")
+	c.String(200, string(b))
 }

@@ -419,12 +419,9 @@ spec:
                 items:
                   type: string
                 type: array
-              version:
-                type: string
             required:
             - appVersion
             - chartVersion
-            - version
             - created
             - description
             - digest
